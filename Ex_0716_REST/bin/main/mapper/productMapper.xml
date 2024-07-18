@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.korea.rest.mapper.ProductMapper">
+	<insert id="insert">
+		INSERT INTO PRODUCT (PRODUCT_ID, PRODUCT_NAME,PRODUCT_STOCK, PRODUCT_PRICE)
+		VALUES(SEQ_PRODUCT.NEXTVAL, #{productName},#{productStock},#{productPrice})
+	</insert>
+	
+	<select id="selectAll">
+		SELECT * FROM PRODUCT
+	</select>
+	
+	<!-- id : updateStock
+	주문한 개수만큼 재고 업데이트 하기 -->
+	<update id="updateStock">
+		UPDATE PRODUCT SET
+		PRODUCT_STOCK = PRODUCT_STOCK - #{productCount}
+		WHERE PRODUCT_ID = #{productId}
+	</update>
+	
+	<select id="select">
+		SELECT * FROM PRODUCT WHERE PRODUCT_ID = #{productId}
+	</select>
+	
+</mapper>
+
+
+
+
+
+
+
+

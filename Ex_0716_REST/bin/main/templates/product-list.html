@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>상품 목록</title>
+<style>
+	div {
+		margin: 0 auto;
+		width : 1000px;
+	}
+	
+	table {
+		width : 100%;
+	}
+	
+	button{
+		width:50%;
+	}
+	
+	/* 상품추가 버튼에 너비를 100%로 만들기 */
+	button.register-ready{
+		width:100%;
+	}
+	
+	button.register-done{
+		width:100%;
+	}
+	
+	/* 상품추가 form 안보이게 만들기 */
+	 div.register-wrap{
+		width:500px;
+		display:none;
+	} 
+	
+	div.register-wrap div{
+		width:100%;
+	}
+	
+	div.register-wrap input{
+		width:100%;
+	}
+	
+	span{
+		cursor:pointer;
+	}
+	
+	span.on{
+		font-weight: bold;
+	}
+	
+	#container{
+		display:none;
+	}
+	
+	div.sort{
+		text-align: right;
+	}
+</style>
+</head>
+<body>
+	<div>
+		<button type="button" class="register-ready">상품추가</button>
+		<div class="register-wrap" th:object="${productForm}">
+			<div><input th:field="*{productName}" placeholder="상품 이름"></div>
+			<div><input th:field="*{productStock}" placeholder="상품 재고"></div>
+			<div><input th:field="*{productPrice}" placeholder="상품 가격"></div>
+			<input type="button" class="register-done" value="등록">
+		</div>
+	
+	
+	<table border="1">
+		<tr>
+			<th>단일 선택</th>
+			<th>주문 개수</th>
+			<th>상품 번호</th>
+			<th>상품 이름</th>
+			<th>상품 재고</th>
+			<th>상품 가격</th>
+			<th>등록 날짜</th>
+			<th>수정 날짜</th>
+		</tr>
+		<th:block th:each="product : ${list}">
+			<tr th:object="${product}">
+				<td><input type="radio" name="productId" th:value="*{productId}"></td>
+				<td><input type="text" class="productCount" readonly></td>
+				<td th:text="*{productId}"></td>
+				<td th:text="*{productName}"></td>
+				<td th:text="*{productStock}"></td>
+				<td th:text="*{productPrice}"></td>
+				<td th:text="*{registerDate}"></td>
+				<td th:text="*{updateDate}"></td>
+		</th:block>
+	</table>
+	<button type="button" id="order-done">주문완료</button><button type="button" id="order-list">주문내역</button>
+	</div>
+	<div id="container">
+		<div class="sort">
+			<span class="on" id="recent" data-sort="recent">최신순</span>
+			<span class="" id="money" data-sort="money">결제 금액순</span>
+		</div>
+		<div class="order-list"></div>
+	</div>
+</body>
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script>
+	const $radios = $("input[type='radio']") //input태그중 type속성이 radio인 모든 요소 선택
+	const $inputs = $("input[class='productCount']")//input태그중 class속성이 productCount인 모든 요소를 선택
+	const $done = $("#order-done"); //id값이 order-done인 요소 선택
+	const $form = $("form[name='order-form']")//name속성이 order-form인 form태그 선택
+	
+	let $temp, i; //temp는 임시로 저장할 변수, i는 선택된 라디오버튼의 인덱스를 저장
+	
+	const $ids = $("input[name='productId']")
+	
+	/////////////////////// 주문기능
+	 $radios.on("click", function(){ //라디오버튼의 클릭 이벤트 처리하는 함수
+	       i = $radios.index(this); //i에 선택한 라디오 버튼의 index값을 저장
+	       if($temp) {
+	           $temp.prop("readOnly", true);
+		//변수를 사용하여 이전에 선택된 입력 필드를 확인하고, readOnly 속성을 true로 설정하여 읽기 전용으로 변경합니다.
+	           $temp.val(""); 
+	       }
+	       $inputs.eq(i).prop("readOnly", false);
+		//클릭된 라디오 버튼에 해당하는 입력 필드를 선택하고, readOnly 속성을 false로 설정하여 편집 가능한 상태로 변경합니다.
+	       $temp = $inputs.eq(i); //$temp 변수에 선택된 입력 필드를 저장합니다.
+	    });
+	
+		//주문완료 버튼을 눌렀을 때 productId와 productCount값을 input태그에 전달
+		$done.on("click",function(){
+			/* if(i+1){
+				$form.find("input[name='productId']").val($radios.eq(i).val());
+				//form태그에서 name값이 productId인 input태그를 찾아서, 선택된 라디오버튼의 value값을 넣는다.
+				$form.find("input[name='productCount']").val($inputs.eq(i).val());
+				//form태그에서 name값이 productCount인 input태그를 찾아서, 작성된 input태그의 value값을 대입한다.
+				console.log("상품번호 : " + $form.find("input[name='productId']").val());
+				console.log("주문개수 : " + $form.find("input[name='productCount']").val());
+				$form.submit();
+			} */
+			$.ajax({
+				url:"/order/write",
+				type : "post",
+				data : JSON.stringify({productId : $ids.eq(i).val(), productCount : $inputs.eq(i).val()}),
+				contentType : "application/json; charset=utf-8",
+				success : function(){ //주문이 성공했을 때
+					//주문이 성공했다면 재고를 감소
+					$.ajax({
+						url:"/product/"+$ids.eq(i).val(),
+						success : function(products){
+							console.log(products.productStock);
+							$($("tr").eq(i+1).children()).eq(4).text(products.productStock);
+						}
+					});
+					$orderList.click();
+				}
+			})
+			
+		})
+	/////////////////////////////////
+	
+	//상품추가버튼을 눌렀을 때 입력폼이 보이게 하기
+	const $registerReady = $("button.register-ready")//상품추가 버튼
+	const $registerDone = $("input.register-done")//등록버튼
+	
+	//상품추가버튼을 눌렀을 때 입력폼이 보이게 하기
+	$registerReady.on("click", function(){
+		$(this).hide();
+		//상품추가폼 보이게하기
+		//폼 div태그.show();
+		$("div.register-wrap").show();
+	})
+	
+	//등록버튼 눌렀을때 입력폼 숨기고 상품추가버튼 보이게 하기
+	//DB에 상품을 등록
+	$registerDone.on("click",function(){
+		/* $("div.register-wrap").hide();
+		$registerReady.show(); */
+		//ajax
+		$.ajax({
+			url:"new", //URL 요청
+			type:"post", //전송방식
+			//요청과 함께 전송할 데이터 설정.
+			//자바스크립트 객체 형태로 전달을 하기 위해 JSON.stringify()를 사용한다.
+			data:JSON.stringify({productName:$("#productName").val(), productStock:$("#productStock").val(), productPrice : $("#productPrice").val()}),
+			//요청 콘텐츠 타입을 JSON으로 설정하겠다.
+			contentType:"application/json; charset=utf-8",
+			//성공적으로 처리된 경우 실행될 콜백 함수이다.
+			success:function(){
+				//현재페이지 새로고침
+				location.reload();
+			}
+		});
+		
+	})
+	
+	//////////////////////////////
+	
+	//주문내역 버튼을 눌렀을 때 ajax를 이용해 아래에 주문내역 테이블이 뜨도록 코드 작성하기
+	let sort;
+	const $spans = $("div.sort span"); //div태그에 class값이 sort인 span들
+	const $orderList = $("button#order-list")
+	
+	
+	$spans.on("click",function(){
+		$spans.attr("class","");
+		$(this).attr("class","on");
+		$orderList.click();
+	})
+	
+	//주문내역 버튼 누르면 아래에 뜨게 하기
+	$orderList.on("click",function(){
+		$("#container").show();
+		
+		// 최신순/결제금액순 정렬하기
+		$spans.each((i,span) =>{
+			if($(span).attr("class")){
+				sort = $(span).data("sort");//data-sort에 들어있는 값을 변수 sort에 대입
+			}
+		})
+		
+		$("span").attr("class","");
+		$("span#"+sort).attr("class","on");
+		$.ajax({
+			url:"/order/list/"+sort,
+			success : function(orders){
+				let text = `
+				<table border="1">
+					<tr>
+						<th>상품 이름</th>
+						<th>상품 가격</th>
+						<th>주문 개수</th>
+						<th>결제 금액</th>
+						<th>주문 날짜</th>
+					</tr>
+				`;
+				orders.forEach(order => {
+					text += `
+					<tr>
+						<td>${order.productName}</td>
+						<td>${order.productPrice}</td>
+						<td>${order.productCount}</td>
+						<td>${order.orderPrice}</td>
+						<td>${order.orderDate}</td>
+					</tr>
+					`
+				})
+				text += `</table>`;
+				
+				$("div.order-list").html(text);
+			}
+		})
+	})
+	
+	//라디오버튼
+	
+	
+	
+	
+	
+	
+	
+</script>
+</html>
+
+
+
+
+
+
+
+
+
