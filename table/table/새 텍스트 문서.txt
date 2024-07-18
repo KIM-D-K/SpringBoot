@@ -1,0 +1,30 @@
+create sequence seq_visit_idx;
+
+create table visit(
+	idx number(3) primary key,
+	name varchar2(50),	--작성자
+	content varchar2(1000), --내용
+	pwd varchar2(20), --비번
+	ip varchar2(20), --ip
+	regdate date --등록날짜
+);
+
+insert into visit values(
+	seq_visit_idx.nextVal,
+	'일길동',
+	'내가 1등',
+	'1111',
+	'192.1.1',
+	sysdate
+);
+
+insert into visit values(
+	seq_visit_idx.nextVal,
+	'이길동',
+	'내가 2등',
+	'1111',
+	'192.1.1',
+	sysdate
+);
+
+commit;
